@@ -1,6 +1,22 @@
 # Bitcore Storage Tests
 
-Keeping a database of bitcoin address summaries with balance and txids will improve read performance. Being able to read from multiple processes will also help read performance for better CPU utilization. Doing this requires calculating the balance of addresses in advance, and that requires retrieving previous output information during the initial synchronization. Three alternatives were explored as options for getting this information.
+Keeping a database of bitcoin address summaries with balance and txids will improve read performance. Being able to read from multiple processes will also help read performance for better CPU utilization. Doing this requires calculating the balance of addresses in advance, and that requires retrieving previous output information during the initial synchronization. Three alternatives were explored as options for getting this information, in addition to additional query tests.
+
+## Experiment with Node.js Clustering LMDB Storage
+
+### Question
+
+What is the performance of querying the txids sorted by block height involving 2,100 addresses in a cluster?
+
+### Hypothesis
+
+Being able to query LMDB database from multiple processes plus using LMDB cursors should improve query speeds.
+
+### Tests and Analysis
+
+The [code in this repository](https://github.com/braydonf/bitcore-storage-tests/blob/master/lmdb/cluster.js) tests LMDB for querying and merging multiple results. The database uses duplicate sorted fixed values. The key is the address and the value the txid and height. Furthermore multiple read only transactions are used inside of a cluster of child processes sharing the same LMDB environment. For the tests 8 child processes where started. Around 2,100 addresses are generated and the database records two txids per address, is this is the average for an HD wallet. **The time on average for a single query was around 200ms.** Merge sorting was the most expensive part of the operation, without sorting the response time was under 100ms. With 200 concurrent requests the response times were around 2.5 seconds.
+
+These results show that query performance has been improved by around 15 times in addition to improve concurrency.
 
 ## Experiment with LMDB Storage
 
