@@ -1,33 +1,21 @@
 'use strict';
 
+// Requires a lot of memory to hold all of the test data,
+// it's possible to use --max-old-space-size=8192 flag to increase
+// the amount available.
+
 var path = require('path');
 var crypto = require('crypto');
-var lmdb = require('node-lmdb/build/Release/node-lmdb');
+var levelup = require('levelup');
 
-var env = new lmdb.Env();
-env.open({
-  path: path.resolve(__dirname, './test-write/'),
-  maxDbs: 10,
-  mapSize: 268435456 * 4096,
-  maxReaders: 126,
-  noMetaSync: true,
-  noSync: true
-});
-
-var outputSpentDbi = env.openDbi({
-  name: 'outputSpent',
-  create: true
-});
-
-var addressOutputsDbi = env.openDbi({
-  name: 'addressOutputs',
-  create: true,
-  dupSort: true
-});
+var db = levelup('./test-write');
 
 var addressOutputs = {};
 var outputSpents = {};
 var outKeys = [];
+
+var SPENT_PREFIX = new Buffer('01', 'hex');
+var OUTPUTS_PREFIX = new Buffer('02', 'hex');
 
 var TOTAL_TRANSACTIONS = 1000000;
 var TOTAL_INS_AND_OUTS = TOTAL_TRANSACTIONS * 2; // Two inputs and outputs per transaction
@@ -50,36 +38,50 @@ while (d < TOTAL_INS_AND_OUTS) {
   outputSpents[key] = value;
 
   var addressKey = outKeys[d % TOTAL_ADDRESSES];
-  var addressValue = crypto.randomBytes(48);
+
+  var addressKeyPlus = crypto.randomBytes(36);
+
+  var addressValue = crypto.randomBytes(12);
 
   if (addressOutputs[addressKey]) {
-    addressOutputs[addressKey].push(addressValue);
+    addressOutputs[addressKey].push([addressKeyPlus, addressValue]);
   } else {
-    addressOutputs[addressKey] = [addressValue];
+    addressOutputs[addressKey] = [[addressKeyPlus, addressValue]];
   }
 
   d++;
 }
 
-console.log('Starting to write to database...');
+console.log('Creating batch operations...');
 
-var start = new Date();
-
-var txn = env.beginTxn();
+var operations = [];
 
 for(var addressKey in addressOutputs) {
   var out = addressOutputs[addressKey];
   for (var i = 0; i < out.length; i++) {
-    txn.putBinary(addressOutputsDbi, addressKey, out[i]);
+    operations.push({
+      type: 'put',
+      key: Buffer.concat([SPENT_PREFIX, new Buffer(addressKey, 'binary'), out[i][0]]),
+      value: out[i][1]
+    });
   }
+  delete addressOutputs[addressKey];
 }
 
 for(var outKey in outputSpents) {
-  txn.putBinary(outputSpentDbi, outKey, outputSpents[outKey]);
+  operations.push({
+    type: 'put',
+    key: Buffer.concat([OUTPUTS_PREFIX, new Buffer(outKey, 'binary')]),
+    value: outputSpents[outKey]
+  });
+  delete outputSpents[outKey];
 }
 
-txn.commit();
-env.sync(function(err){
+console.log('Starting to write...');
+
+var start = new Date();
+
+db.batch(operations, function(err) {
   if (err) {
     throw err;
   }
