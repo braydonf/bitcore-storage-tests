@@ -65,6 +65,10 @@ console.log('Starting to write to database...');
 
 var start = new Date();
 
+setInterval(function() {
+  console.log('time', new Date());
+}, 1000);
+
 var txn = env.beginTxn();
 
 for(var addressKey in addressOutputs) {
@@ -78,7 +82,9 @@ for(var outKey in outputSpents) {
   txn.putBinary(outputSpentDbi, outKey, outputSpents[outKey]);
 }
 
+console.log('Starting to commit...');
 txn.commit();
+console.log('Starting to sync...');
 env.sync(function(err){
   if (err) {
     throw err;
