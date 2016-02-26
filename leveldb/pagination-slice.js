@@ -9,7 +9,7 @@ var db = levelup('./pages');
 var txids = [];
 
 var TOTAL_TRANSACTIONS = 1000000;
-var PAGE = 1000;
+var PAGE = 99999;
 var PAGE_SIZE = 10;
 var VALUE_SIZE = 36;
 var HEIGHT_SIZE = 4;
