@@ -1,5 +1,6 @@
 'use strict';
 
+var assert = require('assert');
 var crypto = require('crypto');
 var async = require('async');
 var MongoClient = require('mongodb').MongoClient;
@@ -24,6 +25,7 @@ var d = 0;
 while(d < TOTAL_TRANSACTIONS) {
   txids.push({
     txid: crypto.randomBytes(32),
+    outputIndex: Math.round(Math.random() * 2),
     height: Math.round(Math.random() * 1000),
     spent: (Math.round(Math.random()) === 1)
   });
@@ -37,18 +39,16 @@ MongoClient.connect(url, function(err, db) {
     throw err;
   }
   console.log('Writing to database...');
-  var start = new Date();
 
   var txidsDb = db.collection('txids');
   txidsDb.createIndex({address: 1, spent: 1, height: -1});
 
-  var e = 0;
-
-  async.forEachOf(addressKeys, function(addressKey, n, next) {
-    var data = txids[e];
+  async.forEachOf(txids, function(data, n, next) {
+    var addressKey = addressKeys[n % TOTAL_ADDRESSES];
     txidsDb.insertOne({
       address: addressKey,
       txid: data.txid,
+      outputIndex: data.outputIndex,
       height: data.height,
       spent: data.spent
     }, next);
@@ -58,22 +58,22 @@ MongoClient.connect(url, function(err, db) {
     }
     console.log('Finished writing to database...');
 
+    var start = new Date();
+
     txidsDb.find({
       address: {
         $in: addressKeys
-      },
-      spent: false
-    }, function(err, results) {
+      }
+    }).toArray(function(err, docs) {
       if (err) {
         throw err;
       }
-      var data = results.toArray();
-      data.then(function(txids) {
-        var end = new Date();
-        console.log('Done reading txids for ' + TOTAL_ADDRESSES + ' in ' + (end - start) + ' milliseconds.');
-        db.close();
-      });
+      assert.equal(docs.length, TOTAL_TRANSACTIONS);
+      var end = new Date();
+      console.log('Done reading txids for ' + TOTAL_ADDRESSES + ' in ' + (end - start) + ' milliseconds.');
+      db.close();
     });
+
 
   });
 });
