@@ -34,7 +34,7 @@ Timing results for **100,000 addresses** with **2 txids each**:
 3. 2,399 milliseconds
 4. 2,752 milliseconds
 
-These results show that with LevelDB a single key/value updated with txids for an address is 800% faster over streaming txids from keys. However only a 130% improvement in comparison with MongoDB documents with indexes for address and height.
+These results show that with LevelDB a single key/value updated with txids for an address is 800% faster over streaming txids from keys *(the currently implemented method)*. However only a 130% improvement in comparison with MongoDB documents with indexes for address and height.
 
 ## Experiment with Node.js Clustering LMDB Storage
 
