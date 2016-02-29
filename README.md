@@ -21,18 +21,18 @@ Keeping a single key/value with an array of txids should have considerable read 
 
 Timing results for **10,000 addresses** with **2 txids each**:
 
-1. leveldb (single key/value) - 157 milliseconds
-2. leveldb (multi key stream) - 1,524 milliseconds
-3. mongodb (multi document, with address and height index) - 255 milliseconds
-4. monogdb (single document, with address index) - 286 milliseconds
+1. 157 milliseconds
+2. 1,524 milliseconds
+3. 255 milliseconds
+4. 286 milliseconds
 
 
 Timing results for **100,000 addresses** with **2 txids each**:
 
-1. leveldb (single key/value) - 1,784 milliseconds
-2. leveldb (multi key stream) - 15,191 milliseconds
-3. mongodb (multi document, with address and height index) - 2,399 milliseconds
-4. mongodb (single document, with address index) - 2,752 milliseconds
+1. 1,784 milliseconds
+2. 15,191 milliseconds
+3. 2,399 milliseconds
+4. 2,752 milliseconds
 
 These results show that with LevelDB a single key/value updated with txids for an address is 800% faster over streaming txids from keys. However only a 130% improvement in comparison with MongoDB documents with indexes for address and height.
 
