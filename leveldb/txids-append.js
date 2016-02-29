@@ -6,8 +6,8 @@ var async = require('async');
 
 var db = levelup('./txids-append');
 
-var TRANSACTIONS_PER_ADDRESS = 20;
-var TOTAL_ADDRESSES = 2000;
+var TRANSACTIONS_PER_ADDRESS = 2;
+var TOTAL_ADDRESSES = 10000;
 var TOTAL_TRANSACTIONS = TOTAL_ADDRESSES * TRANSACTIONS_PER_ADDRESS;
 
 var addressKeys = [];
