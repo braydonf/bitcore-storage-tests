@@ -18,14 +18,22 @@ while(c < TOTAL_ADDRESSES) {
   c++;
 }
 
-
-var txids = [];
+var operations = [];
 
 var d = 0;
-while(d < TOTAL_TRANSACTIONS) {
-  txids.push({
-    txid: crypto.randomBytes(32),
-    height: Math.round(Math.random() * 1000)
+while(d < TOTAL_TRANSACTIONS / TRANSACTIONS_PER_ADDRESS) {
+  var txCount = 0;
+  var values = [];
+  while(txCount < TRANSACTIONS_PER_ADDRESS) {
+    values.push({
+      txid: crypto.randomBytes(32),
+      height: Math.round(Math.random(400000))
+    });
+    txCount++;
+  }
+  operations.push({
+    key: addressKeys[d % TOTAL_ADDRESSES],
+    value: values
   });
   d++;
 }
@@ -39,14 +47,12 @@ MongoClient.connect(url, function(err, db) {
   console.log('Writing to database...');
 
   var txidsDb = db.collection('txids');
-  txidsDb.createIndex({address: 1, height: -1});
+  txidsDb.createIndex({address: 1});
 
-  async.forEachOf(txids, function(data, n, next) {
-    var addressKey = addressKeys[n % TOTAL_ADDRESSES];
+  async.forEachOf(operations, function(op, n, next) {
     txidsDb.insertOne({
-      address: addressKey,
-      txid: data.txid,
-      height: data.height
+      address: op.key,
+      txids: op.value,
     }, next);
   }, function(err) {
     if (err) {
@@ -64,7 +70,16 @@ MongoClient.connect(url, function(err, db) {
       if (err) {
         throw err;
       }
-      assert.equal(docs.length, TOTAL_TRANSACTIONS);
+      var txids = [];
+      for (var i = 0; i < docs.length; i++) {
+        for (var j = 0; j < docs[i].txids.length; j++) {
+          txids.push(docs[i].txids[j]);
+        }
+      }
+      txids.sort(function(a, b) {
+        return a.height - b.height;
+      });
+      assert.equal(txids.length, TOTAL_TRANSACTIONS);
       var end = new Date();
       console.log('Done reading txids for ' + TOTAL_ADDRESSES + ' in ' + (end - start) + ' milliseconds.');
       db.close();

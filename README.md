@@ -2,6 +2,40 @@
 
 Keeping a database of bitcoin address summaries with balance and txids will improve read performance. Being able to read from multiple processes will also help read performance for better CPU utilization. Doing this requires calculating the balance of addresses in advance, and that requires retrieving previous output information during the initial synchronization. Three alternatives were explored as options for getting this information, in addition to additional query tests.
 
+## Multi-address Transaction History Queries
+
+### Question
+
+What is best method to model data to query for transaction history for multiple addresses?
+
+### Hypothesis
+
+Keeping a single key/value with an array of txids should have considerable read performance benefits for queries upon multiple addresses.
+
+### Tests and Analysis
+
+1. LevelDB concatenation: Key/values are both used with a single key that keeps track of all txids. When updating these records a read-modify-write operation is needed (see `txids-append.js` and `txids-keys.js` for write performace). The key/values have the form: `ripemd160 address hash (20bytes) -> [height (4bytes), txid(32 bytes)]`.
+2. LevelDB key streaming: Keys are used exclusively to record each instance of a transaction for an address. The advantage is the write operations do not need to read-modify-write operation (not optimized). The format of the key is: `ripemd160 address hash (20bytes), address type (1byte), height (4bytes), txid (32bytes)`. Since this is using LevelDB the height and txids are used as part of the key because there can not be multiple values as with LMDB.
+3. MongoDB multi-document: Each transaction is recorded as a document with key/values for address, txid and height. An index is created for address and height.
+4. MongoDB single-document: Each address has a document that includes all txids for the address. The document has an address and txids field, with an address index. The txids all have an txid and height property.
+
+Timing results for 10,000 addresses with 2 txids each:
+
+1. leveldb (single key/value) - 157 milliseconds
+2. leveldb (multi key stream) - 1,524 milliseconds
+3. mongodb (multi document, with address and height index) - 255 milliseconds
+4. monogdb (single document, with address index) - 286 milliseconds
+
+
+Timing results for 100,000 addresses with 2 txids each:
+
+1. leveldb (single key/value) - 1,784 milliseconds
+2. leveldb (multi key stream) - 15,191 milliseconds
+3. mongodb (multi document, with address and height index) - 2,399 milliseconds
+4. mongodb (single document, with address index) - 2,752 milliseconds
+
+These results show that with LevelDB a single key/value updated with txids for an address is 800% faster over streaming txids from keys. However only a 130% improvement in comparison with MongoDB documents with indexes for address and height.
+
 ## Experiment with Node.js Clustering LMDB Storage
 
 ### Question

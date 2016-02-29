@@ -6,7 +6,7 @@ var async = require('async');
 var levelup = require('levelup');
 
 var TRANSACTIONS_PER_ADDRESS = 2;
-var TOTAL_ADDRESSES = 2000;
+var TOTAL_ADDRESSES = 100000;
 var TOTAL_TRANSACTIONS = TOTAL_ADDRESSES * TRANSACTIONS_PER_ADDRESS;
 
 var addressKeys = [];
