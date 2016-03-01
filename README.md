@@ -18,6 +18,7 @@ Keeping a single key/value with an array of txids should have considerable read 
 2. **LevelDB key streaming** ([code](https://github.com/braydonf/bitcore-storage-tests/blob/master/leveldb/multi-txids-stream.js)): Keys are used exclusively to record each instance of a transaction for an address. The advantage is the write operations do not need to read-modify-write operation (not optimized). The format of the key is: `ripemd160 address hash (20bytes), address type (1byte), height (4bytes), txid (32bytes)`. Since this is using LevelDB the height and txids are used as part of the key because there can not be multiple values as with LMDB.
 3. **MongoDB multi-document** ([code](https://github.com/braydonf/bitcore-storage-tests/blob/master/mongodb/multi-txids.js)): Each transaction is recorded as a document with key/values for address, txid and height. An index is created for address and height.
 4. **MongoDB single-document** ([code](https://github.com/braydonf/bitcore-storage-tests/blob/master/mongodb/multi-txids-single.js)): Each address has a document that includes all txids for the address. The document has an address and txids field, with an address index. The txids all have an txid and height property.
+5. **LMDB multi-value** ([code](https://github.com/braydonf/bitcore-storage-tests/blob/master/lmdb/multi-txids.js)): Duplicate sorted values for a key are used with a cursor to iterate over the values. In between cursor movements `setImmediate` is used to avoid maximum call stack errors as well as to prevent blocking. The key has the format `ripemd160 address hash (20bytes), address type (1byte>`, with values as `[height (4bytes], txid (32bytes)]`.
 
 Timing results for **10,000 addresses** with **2 txids each**:
 
@@ -25,7 +26,7 @@ Timing results for **10,000 addresses** with **2 txids each**:
 2. 1,524 milliseconds
 3. 255 milliseconds
 4. 286 milliseconds
-
+5. 393 milliseconds
 
 Timing results for **100,000 addresses** with **2 txids each**:
 
@@ -33,6 +34,7 @@ Timing results for **100,000 addresses** with **2 txids each**:
 2. 15,191 milliseconds
 3. 2,399 milliseconds
 4. 2,752 milliseconds
+5. 3,214 milliseconds
 
 These results show that with LevelDB a single key/value updated with txids for an address is 800% faster over streaming txids from keys *(the currently implemented method)*. However only a 130% improvement in comparison with MongoDB documents with indexes for address and height.
 
