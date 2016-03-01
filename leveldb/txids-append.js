@@ -32,11 +32,10 @@ var e = 0;
 
 var start = new Date();
 
-var operations = [];
-
 console.log('Writing to database...');
 
 async.timesSeries(TRANSACTIONS_PER_ADDRESS, function(n, done) {
+  var operations = [];
   async.each(addressKeys, function(addressKey, next) {
     db.get(addressKey, {
       encoding: 'binary'
