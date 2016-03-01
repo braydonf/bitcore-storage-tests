@@ -38,10 +38,16 @@ while(d < TOTAL_TRANSACTIONS / TRANSACTIONS_PER_ADDRESS) {
 
 var db = levelup('./multi-txids');
 
+var startWrite = new Date();
+
 db.batch(operations, function(err) {
   if (err) {
     return callback(err);
   }
+
+  var endWrite = new Date();
+
+  console.log('Finished writing to database in ' + (endWrite - startWrite) + ' milliseconds.');
 
   var start = new Date();
 

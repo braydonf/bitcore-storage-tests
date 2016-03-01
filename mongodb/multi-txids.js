@@ -38,6 +38,8 @@ MongoClient.connect(url, function(err, db) {
   }
   console.log('Writing to database...');
 
+  var startWrite = new Date();
+
   var txidsDb = db.collection('txids');
   txidsDb.createIndex({address: 1, height: -1});
 
@@ -52,7 +54,9 @@ MongoClient.connect(url, function(err, db) {
     if (err) {
       throw err;
     }
-    console.log('Finished writing to database...');
+    var endWrite = new Date();
+
+    console.log('Finished writing to database in ' + (endWrite - startWrite) + ' milliseconds.');
 
     var start = new Date();
 
