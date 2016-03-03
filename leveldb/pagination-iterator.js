@@ -56,6 +56,7 @@ db.open({
     var c = new Date();
 
     var iterator = db.iterator({
+      highWaterMark: 100,
       gt: Buffer.concat([addressKey, new Buffer('00', 'hex')]),
       lt: Buffer.concat([addressKey, new Buffer('ff', 'hex')]),
       keyEncoding: 'binary',
@@ -71,22 +72,23 @@ db.open({
     async.whilst(function() {
       return count < end;
     }, function(done) {
-      iterator.next(function(err, key) {
+      iterator.next(function(err, keyValues) {
         if (err) {
           return done(err);
         }
-        if (count >= start && count < end) {
-          var offset = ADDRESS_KEY_SIZE + SPACER_SIZE;
-          var height = key.readUInt32BE(offset);
-          var txid = key.slice(offset + HEIGHT_SIZE, offset + VALUE_SIZE);
-          txids.push({
-            height: height,
-            txid: txid
-          });
-        }
-        count++;
+        count += keyValues.length / 2;
+        // if (count >= start && count < end) {
+        //   var offset = ADDRESS_KEY_SIZE + SPACER_SIZE;
+        //   var height = key.readUInt32BE(offset);
+        //   var txid = key.slice(offset + HEIGHT_SIZE, offset + VALUE_SIZE);
+        //   txids.push({
+        //     height: height,
+        //     txid: txid
+        //   });
+        // }
+        // count++;
         done();
-      });
+      }, {grouped: true});
     }, function(err) {
       var d = new Date();
       var readTime = (d - c);
